@@ -1,0 +1,91 @@
+"use client";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+export default function SignIn() {
+  const router = useRouter();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!email || !password) {
+      alert("Please enter email and password");
+      return;
+    }
+
+    router.push("/dashboard");
+  }
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
+
+      <div className="w-full max-w-md rounded-2xl bg-slate-900 p-8 shadow-xl">
+
+        <h1 className="text-center text-3xl font-bold text-blue-400">
+          TaskFlow
+        </h1>
+
+        <h2 className="mt-6 text-center text-2xl font-semibold">
+          Welcome Back
+        </h2>
+
+        <p className="mt-2 text-center text-slate-400">
+          Sign in to continue to your dashboard
+        </p>
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+
+          <div>
+            <label className="mb-2 block text-sm">
+              Email Address
+            </label>
+
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Enter your email"
+              required
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm">
+              Password
+            </label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter your password"
+              required
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-blue-600 py-3 font-semibold hover:bg-blue-700"
+          >
+            Sign In
+          </button>
+
+        </form>
+
+        <Link
+          href="/"
+          className="mt-6 block text-center text-sm text-slate-400 hover:text-blue-400"
+        >
+          Back to Home
+        </Link>
+
+      </div>
+    </main>
+  );
+}
