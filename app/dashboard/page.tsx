@@ -1,55 +1,150 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 
-// Task ka structure define kar rahe hain
 interface Task {
-  id: number;
+  _id: string;
   title: string;
   completed: boolean;
+  priority?: string;
 }
 
 export default function Dashboard() {
-
-  // Tasks ki initial list
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, title: "Learn TypeScript", completed: false },
-    { id: 2, title: "Practice Next.js", completed: true },
-    { id: 3, title: "Build Landing Page", completed: false },
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  // New task add karna
-  function addTask(event: FormEvent<HTMLFormElement>) {
+  // Load tasks from MongoDB
+  async function fetchTasks() {
+    try {
+      setError("");
+
+      const response = await fetch("/api/tasks", {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to load tasks");
+      }
+
+      const data = await response.json();
+      setTasks(data);
+    } catch (err) {
+      console.error(err);
+      setError("Could not load tasks. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  // Add new task to MongoDB
+  async function addTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!newTask.trim()) return;
 
-    const task: Task = {
-      id: Date.now(),
-      title: newTask,
-      completed: false,
-    };
+    try {
+      setSaving(true);
+      setError("");
 
-    setTasks((previousTasks) => [...previousTasks, task]);
-    setNewTask("");
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: newTask.trim(),
+          priority: "Medium",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add task");
+      }
+
+      const data = await response.json();
+
+      setTasks((previousTasks) => [
+        data.task,
+        ...previousTasks,
+      ]);
+
+      setNewTask("");
+    } catch (err) {
+      console.error(err);
+      setError("Could not add task. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
-  // Task complete ya incomplete karna
-  function toggleTask(id: number) {
-    setTasks((previousTasks) =>
-      previousTasks.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
-      )
-    );
+  // Toggle task completion in MongoDB
+  async function toggleTask(task: Task) {
+    try {
+      setError("");
+
+      const response = await fetch("/api/tasks", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: task._id,
+          completed: !task.completed,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task");
+      }
+
+      setTasks((previousTasks) =>
+        previousTasks.map((item) =>
+          item._id === task._id
+            ? { ...item, completed: !item.completed }
+            : item
+        )
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Could not update task. Please try again.");
+    }
   }
 
-  // Statistics calculate karna
+  // Delete task from MongoDB
+  async function deleteTask(id: string) {
+    try {
+      setError("");
+
+      const response = await fetch(
+        `/api/tasks?id=${encodeURIComponent(id)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete task");
+      }
+
+      setTasks((previousTasks) =>
+        previousTasks.filter((task) => task._id !== id)
+      );
+    } catch (err) {
+      console.error(err);
+      setError("Could not delete task. Please try again.");
+    }
+  }
+
+  // Calculate statistics
   const completedTasks = tasks.filter(
     (task) => task.completed
   ).length;
@@ -115,24 +210,31 @@ export default function Dashboard() {
           onSubmit={addTask}
           className="mt-4 flex flex-col gap-3 sm:flex-row"
         >
-
           <input
             type="text"
             value={newTask}
             onChange={(event) => setNewTask(event.target.value)}
             placeholder="Enter task name"
+            required
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
 
           <button
             type="submit"
-            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-700"
+            disabled={saving}
+            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            Add Task
+            {saving ? "Adding..." : "Add Task"}
           </button>
-
         </form>
       </section>
+
+      {/* Error Message */}
+      {error && (
+        <p className="mt-5 rounded-lg bg-red-900/40 p-3 text-red-300">
+          {error}
+        </p>
+      )}
 
       {/* Task List */}
       <section className="mt-8 rounded-xl bg-slate-900 p-6">
@@ -141,35 +243,56 @@ export default function Dashboard() {
 
         <div className="mt-5 space-y-3">
 
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className="flex items-center justify-between rounded-lg bg-slate-800 p-4"
-            >
-
-              <span
-                className={
-                  task.completed
-                    ? "text-slate-500 line-through"
-                    : "text-white"
-                }
+          {loading ? (
+            <p className="text-slate-400">Loading tasks...</p>
+          ) : tasks.length === 0 ? (
+            <p className="text-slate-400">
+              No tasks found. Add your first task!
+            </p>
+          ) : (
+            tasks.map((task) => (
+              <div
+                key={task._id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-slate-800 p-4"
               >
-                {task.title}
-              </span>
+                <div>
+                  <span
+                    className={
+                      task.completed
+                        ? "text-slate-500 line-through"
+                        : "text-white"
+                    }
+                  >
+                    {task.title}
+                  </span>
 
-              <button
-                onClick={() => toggleTask(task.id)}
-                className={`rounded-lg px-3 py-2 text-sm ${
-                  task.completed
-                    ? "bg-green-700"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
-                {task.completed ? "Completed" : "Complete"}
-              </button>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Priority: {task.priority || "Medium"}
+                  </p>
+                </div>
 
-            </div>
-          ))}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleTask(task)}
+                    className={`rounded-lg px-3 py-2 text-sm ${
+                      task.completed
+                        ? "bg-green-700"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {task.completed ? "Completed" : "Complete"}
+                  </button>
+
+                  <button
+                    onClick={() => deleteTask(task._id)}
+                    className="rounded-lg bg-red-600 px-3 py-2 text-sm hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
 
         </div>
       </section>
