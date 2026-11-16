@@ -4,7 +4,6 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-slate-950 text-white">
 
-      {/* Navbar */}
       <nav className="flex items-center justify-between px-10 py-6">
         <h1 className="text-2xl font-bold text-blue-400">
           TaskFlow
@@ -12,7 +11,6 @@ export default function Home() {
         <div className="flex gap-4">
 
       
-
         <Link
           href="/signin"
           className="rounded-lg bg-blue-600 px-6 py-2 hover:bg-blue-700"
@@ -22,7 +20,6 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <section className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">
 
         <h2 className="max-w-3xl text-5xl font-bold">
@@ -44,7 +41,6 @@ export default function Home() {
 
       </section>
 
-      {/* Features */}
       <section className="grid gap-6 px-10 pb-16 md:grid-cols-3">
 
         <div className="rounded-xl bg-slate-900 p-8">

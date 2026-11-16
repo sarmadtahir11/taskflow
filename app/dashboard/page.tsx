@@ -14,11 +14,11 @@ interface Task {
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
+  const [priority, setPriority] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Load tasks from MongoDB
   async function fetchTasks() {
     try {
       setError("");
@@ -45,11 +45,16 @@ export default function Dashboard() {
     fetchTasks();
   }, []);
 
-  // Add new task to MongoDB
+  // Add new task
   async function addTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!newTask.trim()) return;
+
+    if (!priority) {
+      setError("Please select a task priority.");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -62,7 +67,7 @@ export default function Dashboard() {
         },
         body: JSON.stringify({
           title: newTask.trim(),
-          priority: "Medium",
+          priority: priority,
         }),
       });
 
@@ -78,6 +83,7 @@ export default function Dashboard() {
       ]);
 
       setNewTask("");
+      setPriority("");
     } catch (err) {
       console.error(err);
       setError("Could not add task. Please try again.");
@@ -86,7 +92,6 @@ export default function Dashboard() {
     }
   }
 
-  // Toggle task completion in MongoDB
   async function toggleTask(task: Task) {
     try {
       setError("");
@@ -119,7 +124,6 @@ export default function Dashboard() {
     }
   }
 
-  // Delete task from MongoDB
   async function deleteTask(id: string) {
     try {
       setError("");
@@ -144,7 +148,6 @@ export default function Dashboard() {
     }
   }
 
-  // Calculate statistics
   const completedTasks = tasks.filter(
     (task) => task.completed
   ).length;
@@ -166,7 +169,6 @@ export default function Dashboard() {
         </Link>
       </header>
 
-      {/* Welcome Section */}
       <section className="mt-10">
         <h2 className="text-3xl font-bold">Dashboard</h2>
 
@@ -219,6 +221,21 @@ export default function Dashboard() {
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
 
+          {/* Priority Selection */}
+          <select
+            value={priority}
+            onChange={(event) => setPriority(event.target.value)}
+            required
+            className="rounded-lg border border-slate-700 bg-slate-800 p-3 text-white outline-none focus:border-blue-500"
+          >
+            <option value="" disabled>
+              Select Priority
+            </option>
+            <option value="High">High Priority</option>
+            <option value="Medium">Medium Priority</option>
+            <option value="Low">Low Priority</option>
+          </select>
+
           <button
             type="submit"
             disabled={saving}
@@ -229,7 +246,6 @@ export default function Dashboard() {
         </form>
       </section>
 
-      {/* Error Message */}
       {error && (
         <p className="mt-5 rounded-lg bg-red-900/40 p-3 text-red-300">
           {error}
@@ -267,7 +283,7 @@ export default function Dashboard() {
                   </span>
 
                   <p className="mt-1 text-xs text-slate-400">
-                    Priority: {task.priority || "Medium"}
+                    Priority: {task.priority || "Not set"}
                   </p>
                 </div>
 

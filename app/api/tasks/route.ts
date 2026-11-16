@@ -1,4 +1,3 @@
-
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
@@ -9,7 +8,6 @@ async function getTasksCollection() {
   return db.collection("tasks");
 }
 
-// GET: Fetch all tasks
 export async function GET() {
   try {
     const collection = await getTasksCollection();
@@ -29,14 +27,23 @@ export async function GET() {
   }
 }
 
-// POST: Add a new task
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (!body.title || typeof body.title !== "string") {
+    if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
       return Response.json(
         { error: "Task title is required" },
+        { status: 400 }
+      );
+    }
+
+    // Priority validation
+    const allowedPriorities = ["High", "Medium", "Low"];
+
+    if (!allowedPriorities.includes(body.priority)) {
+      return Response.json(
+        { error: "Please select a valid task priority" },
         { status: 400 }
       );
     }
@@ -47,14 +54,17 @@ export async function POST(request: Request) {
       title: body.title.trim(),
       description: body.description || "",
       completed: false,
-      priority: body.priority || "Medium",
+      priority: body.priority,
       createdAt: new Date(),
     };
 
     const result = await collection.insertOne(newTask);
 
     return Response.json(
-      { message: "Task added successfully", task: { ...newTask, _id: result.insertedId } },
+      {
+        message: "Task added successfully",
+        task: { ...newTask, _id: result.insertedId },
+      },
       { status: 201 }
     );
   } catch (error) {
@@ -66,7 +76,6 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT: Update a task
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
@@ -101,7 +110,6 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE: Remove a task
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
