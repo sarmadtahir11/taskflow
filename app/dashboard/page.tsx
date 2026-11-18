@@ -4,6 +4,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "@/lib/taskService";
+
 interface Task {
   _id: string;
   title: string;
@@ -19,23 +26,15 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Get tasks from database
   async function fetchTasks() {
     try {
       setError("");
-
-      const response = await fetch("/api/tasks", {
-        cache: "no-store",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to load tasks");
-      }
-
-      const data = await response.json();
+      const data = await getTasks();
       setTasks(data);
-    } catch (err) {
-      console.error(err);
-      setError("Could not load tasks. Please try again.");
+    } catch (error) {
+      console.log(error);
+      setError("Could not load tasks.");
     } finally {
       setLoading(false);
     }
@@ -49,10 +48,8 @@ export default function Dashboard() {
   async function addTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!newTask.trim()) return;
-
-    if (!priority) {
-      setError("Please select a task priority.");
+    if (!newTask.trim() || !priority) {
+      setError("Please enter task name and priority.");
       return;
     }
 
@@ -60,56 +57,26 @@ export default function Dashboard() {
       setSaving(true);
       setError("");
 
-      const response = await fetch("/api/tasks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: newTask.trim(),
-          priority: priority,
-        }),
-      });
+      const data = await createTask(newTask.trim(), priority);
 
-      if (!response.ok) {
-        throw new Error("Failed to add task");
-      }
-
-      const data = await response.json();
-
-      setTasks((previousTasks) => [
-        data.task,
-        ...previousTasks,
-      ]);
+      setTasks((previousTasks) => [data.task, ...previousTasks]);
 
       setNewTask("");
       setPriority("");
-    } catch (err) {
-      console.error(err);
-      setError("Could not add task. Please try again.");
+    } catch (error) {
+      console.log(error);
+      setError("Could not add task.");
     } finally {
       setSaving(false);
     }
   }
 
+  // Complete or undo task
   async function toggleTask(task: Task) {
     try {
       setError("");
 
-      const response = await fetch("/api/tasks", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: task._id,
-          completed: !task.completed,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update task");
-      }
+      await updateTask(task._id, !task.completed);
 
       setTasks((previousTasks) =>
         previousTasks.map((item) =>
@@ -118,33 +85,25 @@ export default function Dashboard() {
             : item
         )
       );
-    } catch (err) {
-      console.error(err);
-      setError("Could not update task. Please try again.");
+    } catch (error) {
+      console.log(error);
+      setError("Could not update task.");
     }
   }
 
-  async function deleteTask(id: string) {
+  // Delete task
+  async function removeTask(id: string) {
     try {
       setError("");
 
-      const response = await fetch(
-        `/api/tasks?id=${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete task");
-      }
+      await deleteTask(id);
 
       setTasks((previousTasks) =>
         previousTasks.filter((task) => task._id !== id)
       );
-    } catch (err) {
-      console.error(err);
-      setError("Could not delete task. Please try again.");
+    } catch (error) {
+      console.log(error);
+      setError("Could not delete task.");
     }
   }
 
@@ -169,6 +128,7 @@ export default function Dashboard() {
         </Link>
       </header>
 
+      {/* Dashboard Heading */}
       <section className="mt-10">
         <h2 className="text-3xl font-bold">Dashboard</h2>
 
@@ -221,7 +181,6 @@ export default function Dashboard() {
             className="flex-1 rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
           />
 
-          {/* Priority Selection */}
           <select
             value={priority}
             onChange={(event) => setPriority(event.target.value)}
@@ -244,8 +203,10 @@ export default function Dashboard() {
             {saving ? "Adding..." : "Add Task"}
           </button>
         </form>
+
       </section>
 
+      {/* Error Message */}
       {error && (
         <p className="mt-5 rounded-lg bg-red-900/40 p-3 text-red-300">
           {error}
@@ -300,7 +261,7 @@ export default function Dashboard() {
                   </button>
 
                   <button
-                    onClick={() => deleteTask(task._id)}
+                    onClick={() => removeTask(task._id)}
                     className="rounded-lg bg-red-600 px-3 py-2 text-sm hover:bg-red-700"
                   >
                     Delete
