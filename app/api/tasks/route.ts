@@ -1,3 +1,4 @@
+
 import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 
@@ -8,6 +9,7 @@ async function getTasksCollection() {
   return db.collection("tasks");
 }
 
+// GET - Fetch all tasks
 export async function GET() {
   try {
     const collection = await getTasksCollection();
@@ -20,6 +22,7 @@ export async function GET() {
     return Response.json(tasks);
   } catch (error) {
     console.error("GET Error:", error);
+
     return Response.json(
       { error: "Failed to fetch tasks" },
       { status: 500 }
@@ -27,18 +30,22 @@ export async function GET() {
   }
 }
 
+// POST - Create new task
 export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    if (!body.title || typeof body.title !== "string" || !body.title.trim()) {
+    if (
+      !body.title ||
+      typeof body.title !== "string" ||
+      !body.title.trim()
+    ) {
       return Response.json(
         { error: "Task title is required" },
         { status: 400 }
       );
     }
 
-    // Priority validation
     const allowedPriorities = ["High", "Medium", "Low"];
 
     if (!allowedPriorities.includes(body.priority)) {
@@ -69,6 +76,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("POST Error:", error);
+
     return Response.json(
       { error: "Failed to add task" },
       { status: 500 }
@@ -76,6 +84,7 @@ export async function POST(request: Request) {
   }
 }
 
+// PUT - Update task
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
@@ -103,6 +112,7 @@ export async function PUT(request: Request) {
     });
   } catch (error) {
     console.error("PUT Error:", error);
+
     return Response.json(
       { error: "Failed to update task" },
       { status: 500 }
@@ -110,6 +120,7 @@ export async function PUT(request: Request) {
   }
 }
 
+// DELETE - Delete task
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -134,6 +145,7 @@ export async function DELETE(request: Request) {
     });
   } catch (error) {
     console.error("DELETE Error:", error);
+
     return Response.json(
       { error: "Failed to delete task" },
       { status: 500 }

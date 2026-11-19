@@ -1,4 +1,6 @@
+
 "use client";
+
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,16 +10,44 @@ export default function SignIn() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!email || !password) {
-      alert("Please enter email and password");
-      return;
-    }
+    setMessage("");
+    setLoading(true);
 
-    router.push("/dashboard");
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error || "Login failed");
+        return;
+      }
+
+      setMessage("Login successful!");
+
+      router.push("/dashboard");
+
+    } catch (error) {
+      console.error("Login Error:", error);
+      setMessage("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -71,10 +101,17 @@ export default function SignIn() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 py-3 font-semibold hover:bg-blue-700"
+            disabled={loading}
+            className="w-full rounded-lg bg-blue-600 py-3 font-semibold hover:bg-blue-700 disabled:opacity-50"
           >
-            Sign In
+            {loading ? "Signing In..." : "Sign In"}
           </button>
+
+          {message && (
+            <p className="text-center text-sm text-red-400">
+              {message}
+            </p>
+          )}
 
         </form>
 

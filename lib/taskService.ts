@@ -1,4 +1,3 @@
-
 const API_URL = "/api/tasks";
 
 // Get all tasks
@@ -69,3 +68,7 @@ export async function deleteTask(id: string) {
 
   return response.json();
 }
+
+
+
+
