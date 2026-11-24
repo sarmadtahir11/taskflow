@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
   getTasks,
@@ -19,17 +19,21 @@ interface Task {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
   const [priority, setPriority] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
 
   // Get tasks from database
   async function fetchTasks() {
     try {
       setError("");
+
       const data = await getTasks();
       setTasks(data);
     } catch (error) {
@@ -39,9 +43,33 @@ export default function Dashboard() {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  // Logout user
+  async function handleLogout() {
+    try {
+      setLoggingOut(true);
+      setError("");
+
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+
+      window.location.href = "/signin";
+
+    } catch (error) {
+      console.log(error);
+      setError("Could not logout. Please try again.");
+      setLoggingOut(false);
+    }
+  }
 
   // Add new task
   async function addTask(event: FormEvent<HTMLFormElement>) {
@@ -119,12 +147,13 @@ export default function Dashboard() {
           TaskFlow
         </h1>
 
-        <Link
-          href="/"
-          className="rounded-lg bg-slate-800 px-4 py-2 hover:bg-slate-700"
+        <button
+          onClick={handleLogout}
+          disabled={loggingOut}
+          className="rounded-lg bg-red-600 px-4 py-2 hover:bg-red-700 disabled:opacity-50"
         >
-          Logout
-        </Link>
+          {loggingOut ? "Logging out..." : "Logout"}
+        </button>
       </header>
 
       {/* Dashboard Heading */}

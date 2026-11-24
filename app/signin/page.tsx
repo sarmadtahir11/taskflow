@@ -40,7 +40,7 @@ export default function SignIn() {
 
       setMessage("Login successful!");
 
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
 
     } catch (error) {
       console.error("Login Error:", error);
@@ -126,3 +126,4 @@ export default function SignIn() {
     </main>
   );
 }
+

@@ -1,21 +1,27 @@
+
 const API_URL = "/api/tasks";
 
-// Get all tasks
-export async function getTasks() {
-  const response = await fetch(API_URL, {
-    cache: "no-store",
-  });
+// Common API function
+async function apiRequest(url: string, options?: RequestInit) {
+  const response = await fetch(url, options);
 
   if (!response.ok) {
-    throw new Error("Failed to load tasks");
+    throw new Error("API request failed");
   }
 
   return response.json();
 }
 
+// Get all tasks
+export async function getTasks() {
+  return apiRequest(API_URL, {
+    cache: "no-store",
+  });
+}
+
 // Create a new task
 export async function createTask(title: string, priority: string) {
-  const response = await fetch(API_URL, {
+  return apiRequest(API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -25,17 +31,11 @@ export async function createTask(title: string, priority: string) {
       priority,
     }),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to add task");
-  }
-
-  return response.json();
 }
 
 // Update task status
 export async function updateTask(id: string, completed: boolean) {
-  const response = await fetch(API_URL, {
+  return apiRequest(API_URL, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -45,30 +45,14 @@ export async function updateTask(id: string, completed: boolean) {
       completed,
     }),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to update task");
-  }
-
-  return response.json();
 }
 
 // Delete a task
 export async function deleteTask(id: string) {
-  const response = await fetch(
+  return apiRequest(
     `${API_URL}?id=${encodeURIComponent(id)}`,
     {
       method: "DELETE",
     }
   );
-
-  if (!response.ok) {
-    throw new Error("Failed to delete task");
-  }
-
-  return response.json();
 }
-
-
-
-
