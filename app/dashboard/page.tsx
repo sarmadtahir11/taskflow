@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 
 import {
   getTasks,
@@ -18,16 +19,26 @@ interface Task {
   priority?: string;
 }
 
+interface FormData {
+  title: string;
+  priority: string;
+}
+
 export default function Dashboard() {
   const router = useRouter();
 
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState("");
-  const [priority, setPriority] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormData>();
 
   // Get tasks from database
   async function fetchTasks() {
@@ -71,25 +82,21 @@ export default function Dashboard() {
     }
   }
 
-  // Add new task
-  async function addTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!newTask.trim() || !priority) {
-      setError("Please enter task name and priority.");
-      return;
-    }
-
+  // Add new task using React Hook Form
+  async function addTask(formData: FormData) {
     try {
       setSaving(true);
       setError("");
 
-      const data = await createTask(newTask.trim(), priority);
+      const data = await createTask(
+        formData.title.trim(),
+        formData.priority
+      );
 
       setTasks((previousTasks) => [data.task, ...previousTasks]);
 
-      setNewTask("");
-      setPriority("");
+      reset();
+
     } catch (error) {
       console.log(error);
       setError("Could not add task.");
@@ -197,31 +204,50 @@ export default function Dashboard() {
         <h3 className="text-xl font-bold">Add New Task</h3>
 
         <form
-          onSubmit={addTask}
+          onSubmit={handleSubmit(addTask)}
           className="mt-4 flex flex-col gap-3 sm:flex-row"
         >
-          <input
-            type="text"
-            value={newTask}
-            onChange={(event) => setNewTask(event.target.value)}
-            placeholder="Enter task name"
-            required
-            className="flex-1 rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
-          />
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Enter task name"
+              {...register("title", {
+                required: "Task name is required",
+                validate: (value) =>
+                  value.trim().length > 0 || "Task name cannot be empty",
+              })}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
+            />
 
-          <select
-            value={priority}
-            onChange={(event) => setPriority(event.target.value)}
-            required
-            className="rounded-lg border border-slate-700 bg-slate-800 p-3 text-white outline-none focus:border-blue-500"
-          >
-            <option value="" disabled>
-              Select Priority
-            </option>
-            <option value="High">High Priority</option>
-            <option value="Medium">Medium Priority</option>
-            <option value="Low">Low Priority</option>
-          </select>
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.title.message}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <select
+              {...register("priority", {
+                required: "Please select a priority",
+              })}
+              className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 text-white outline-none focus:border-blue-500"
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select Priority
+              </option>
+              <option value="High">High Priority</option>
+              <option value="Medium">Medium Priority</option>
+              <option value="Low">Low Priority</option>
+            </select>
+
+            {errors.priority && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.priority.message}
+              </p>
+            )}
+          </div>
 
           <button
             type="submit"

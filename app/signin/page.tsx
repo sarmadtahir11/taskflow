@@ -1,21 +1,29 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+
+interface FormData {
+  email: string;
+  password: string;
+}
 
 export default function SignIn() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>();
 
+  async function onSubmit(formData: FormData) {
     setMessage("");
     setLoading(true);
 
@@ -25,10 +33,7 @@ export default function SignIn() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
@@ -39,7 +44,6 @@ export default function SignIn() {
       }
 
       setMessage("Login successful!");
-
       window.location.href = "/dashboard";
 
     } catch (error) {
@@ -52,7 +56,6 @@ export default function SignIn() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
-
       <div className="w-full max-w-md rounded-2xl bg-slate-900 p-8 shadow-xl">
 
         <h1 className="text-center text-3xl font-bold text-blue-400">
@@ -67,7 +70,7 @@ export default function SignIn() {
           Sign in to continue to your dashboard
         </p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5">
 
           <div>
             <label className="mb-2 block text-sm">
@@ -76,12 +79,22 @@ export default function SignIn() {
 
             <input
               type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
               placeholder="Enter your email"
-              required
+              {...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Enter a valid email",
+                },
+              })}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
             />
+
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -91,12 +104,18 @@ export default function SignIn() {
 
             <input
               type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
               placeholder="Enter your password"
-              required
+              {...register("password", {
+                required: "Password is required",
+              })}
               className="w-full rounded-lg border border-slate-700 bg-slate-800 p-3 outline-none focus:border-blue-500"
             />
+
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-400">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           <button
@@ -126,4 +145,3 @@ export default function SignIn() {
     </main>
   );
 }
-
